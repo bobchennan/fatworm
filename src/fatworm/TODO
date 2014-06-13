@@ -1,0 +1,7 @@
+﻿exists\not 优化
+
+理清楚dic、fdic初始化问题，目前count时有问题
+
+getbytesize cache
+
+select *, 3*5%11 from student

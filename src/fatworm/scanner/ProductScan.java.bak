@@ -1,0 +1,73 @@
+package fatworm.scanner;
+
+import java.util.List;
+
+import fatworm.util.Env;
+import fatworm.util.Error;
+
+public class CopyOfProductScan implements Scan {
+	
+	public Scan sa;
+	public Scan sb;
+	Tuple nextTuple;
+	TupleSchema sch=null;
+	
+	public CopyOfProductScan(Scan a, Scan b){
+		sa=a;
+		sb=b;
+	}
+	
+	@Override
+	public boolean next() throws Exception {
+		nextTuple=null;
+		if (!sb.next()) {
+			if (!sa.next())
+				return false;
+			sb.beforeFirst();
+			if (!sb.next())
+				return false;
+		}
+		return true;
+	}
+
+	@Override
+	public Object getObjectByIndex(int index) throws Exception {
+		return getTuple().getColumn(index);
+	}
+
+	@Override
+	public void beforeFirst() throws Exception {
+		sa.beforeFirst();
+		sa.next();
+		sb.beforeFirst();
+	}
+
+	@Override
+	public int getColumnCount() throws Exception {
+		return sa.getColumnCount()+sb.getColumnCount();
+	}
+
+	@Override
+	public Tuple getTuple() throws Exception {
+		if(nextTuple!=null)return nextTuple;
+		Tuple ret=new Tuple(sch);
+		Tuple s1=sa.getTuple();
+		Tuple s2=sb.getTuple();
+		for(int i=0;i<s1.getSize();++i)
+			ret.addColumn(s1.getColumn(i));
+		for(int i=0;i<s2.getSize();++i)
+			ret.addColumn(s2.getColumn(i));
+		nextTuple=ret;
+		return ret;
+	}
+
+	@Override
+	public TupleSchema getMeta(){
+		if(sch!=null)return sch;
+		TupleSchema scha=sa.getMeta();
+		TupleSchema schb=sb.getMeta();
+		sch=TupleSchema.merge(scha,schb);
+		return sch;
+	}
+
+}

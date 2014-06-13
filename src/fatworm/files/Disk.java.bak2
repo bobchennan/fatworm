@@ -1,0 +1,134 @@
+package fatworm.files;
+
+import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
+
+import fatworm.util.Env;
+import fatworm.util.Error;
+
+public class Disk {
+
+	public static String dir = ".";
+	public static String lastfilename = null;
+	public static RandomAccessFile raf = null;
+	public static FileChannel channel = null;
+	public static FileChannel channel2 = null;
+//	public static final int FUCK=100;
+//	public static int cnt=0;
+	
+//	public static void flushFile(){
+//		if(lastfilename==null)return;
+//		String tbname=lastfilename.split("_")[1];
+//		Env.getByName(tbname).save();
+//	}
+
+	static boolean openFile(String filename) {
+		try {
+//			if(cnt==FUCK){
+//				if(raf!=null){
+//					channel.close();
+//					channel2.close();
+//					raf.close();
+//				}
+//				return false;
+//			}else if(cnt>FUCK)
+//				return false;
+//			else ++cnt;
+			if(filename!=lastfilename){
+				if(raf!=null){
+					channel.close();
+					channel2.close();
+					raf.close();
+//					raf=null;
+//					flushFile();
+				}
+//				added=0;
+//				cache.clear();
+				raf = new RandomAccessFile(dir + "/" + filename, "rw");
+				channel = raf.getChannel();
+				channel2 = raf.getChannel();
+				lastfilename=filename;
+			}
+			else{
+				channel.position(0);
+			}
+			return true;
+		} catch (Throwable e) {
+			fatworm.util.Error.print(e);
+			return false;
+		}
+	}
+
+	public static boolean write(String filename, MemoryBuffer buffer) {
+		try {
+//			if(cnt>FUCK)
+//				return false;
+//			else
+//				++cnt;
+			if(!openFile(filename))return false;
+			channel.write(ByteBuffer.wrap(buffer.getBuffer()));
+			return true;
+//			channel.close();
+//			raf.close();
+		} catch (Throwable e) {
+			fatworm.util.Error.print(e);
+			return false;
+		}
+	}
+
+	public static boolean appendFile(String filename, int add, MemoryBuffer buffer) {
+		try {
+//			if(cnt>FUCK)
+//				return false;
+//			else
+//				++cnt;
+//			if(cnt>100&&filename.equals(lastfilename)){
+////				added=add;
+////				cache.add(buffer.getBuffer());
+//				//System.out.println("ignore");
+//				return;
+//			}else
+//				++cnt;
+			if(!openFile(filename))return false;
+			ByteBuffer sizeBuffer = ByteBuffer
+					.wrap(new byte[] { (byte) add, (byte) (add >> 8),
+							(byte) (add >> 16), (byte) (add >> 24) });
+			while (sizeBuffer.hasRemaining())
+				channel.write(sizeBuffer);
+
+			channel2.position(channel2.size()); 
+			//channel.position(channel.size());
+			ByteBuffer addBuffer = ByteBuffer.wrap(buffer.getBuffer());
+			while (addBuffer.hasRemaining())
+				channel2.write(addBuffer);
+			return true;
+//			channel.close();
+//			raf.close();
+		} catch (Throwable e) {
+			fatworm.util.Error.print(e);
+			return false;
+		}
+	}
+
+	public static MemoryBuffer read(String filename) {
+		RandomAccessFile raf = null;
+		try {
+			raf = new RandomAccessFile(dir + "/" + filename, "r");
+			MemoryBuffer unsafeBuffer = new MemoryBuffer((int) raf.length());
+			raf.read(unsafeBuffer.getBuffer());
+			raf.close();
+			return unsafeBuffer;
+		} catch (Throwable e) {
+			fatworm.util.Error.print(e);
+		}
+		return null;
+	}
+
+	public static void setHomeDir(String folder) {
+		dir = folder;
+	}
+}
